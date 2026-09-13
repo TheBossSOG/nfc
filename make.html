@@ -3,71 +3,62 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>อัปรูป + สร้างลิงก์ NFC</title>
+<title>จัดการกรอบรูป NFC</title>
 <style>
   * { box-sizing: border-box; }
-  body {
-    margin: 0; padding: 20px;
-    background: #f4f4f5; color: #18181b;
+  body { margin: 0; padding: 20px; background: #f4f4f5; color: #18181b;
     font-family: -apple-system, "Segoe UI", "Noto Sans Thai", sans-serif;
-    max-width: 560px; margin-inline: auto; line-height: 1.5;
-  }
+    max-width: 560px; margin-inline: auto; line-height: 1.5; }
   h1 { font-size: 21px; margin: 0 0 4px; }
   p.sub { color: #71717a; font-size: 14px; margin: 0 0 18px; }
   label { display: block; font-weight: 600; font-size: 14px; margin: 14px 0 6px; }
-  input[type=text], input[type=password], input[type=number] {
-    width: 100%; padding: 12px 14px; font-size: 15px;
-    border: 1px solid #d4d4d8; border-radius: 10px; background: #fff;
-  }
+  input[type=text], input[type=password] { width: 100%; padding: 12px 14px; font-size: 15px;
+    border: 1px solid #d4d4d8; border-radius: 10px; background: #fff; }
   small { color: #71717a; font-size: 12.5px; display: block; margin-top: 5px; }
   small a { color: #2563eb; }
 
-  /* กล่องตั้งค่า */
-  details { background: #fff; border: 1px solid #e4e4e7; border-radius: 12px; padding: 4px 16px 16px; margin-bottom: 20px; }
+  details { background: #fff; border: 1px solid #e4e4e7; border-radius: 12px; padding: 4px 16px 16px; margin-bottom: 18px; }
   details summary { cursor: pointer; font-weight: 700; padding: 12px 0; font-size: 15px; list-style: none; }
   details summary::-webkit-details-marker { display: none; }
   details summary::before { content: "⚙️ "; }
   .ok { color: #16a34a; font-weight: 700; }
 
-  /* พื้นที่เลือกรูป */
-  .drop {
-    border: 2px dashed #a1a1aa; border-radius: 14px;
-    padding: 28px 16px; text-align: center; background: #fff; cursor: pointer;
-    transition: border-color .15s, background .15s;
-  }
+  .tabs { display: flex; gap: 8px; margin-bottom: 16px; }
+  .tab { flex: 1; padding: 12px; text-align: center; font-weight: 700; font-size: 15px;
+    border: 1px solid #d4d4d8; border-radius: 10px; background: #fff; cursor: pointer; }
+  .tab.active { background: #18181b; color: #fff; border-color: #18181b; }
+
+  .drop { border: 2px dashed #a1a1aa; border-radius: 14px; padding: 22px 16px; text-align: center;
+    background: #fff; cursor: pointer; transition: border-color .15s, background .15s; }
   .drop:hover { border-color: #2563eb; background: #eff6ff; }
-  .drop .big { font-size: 17px; font-weight: 700; }
+  .drop .big { font-size: 16px; font-weight: 700; }
   .drop .sm { color: #71717a; font-size: 13px; margin-top: 4px; }
-  #file { display: none; }
+  input[type=file] { display: none; }
+  .thumbs { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; }
+  .thumbs img { width: 64px; height: 64px; object-fit: cover; border-radius: 8px; border: 1px solid #e4e4e7; }
+  .picked { font-size: 13px; color: #16a34a; margin-top: 8px; font-weight: 600; }
 
-  .thumbs { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
-  .thumbs img { width: 72px; height: 72px; object-fit: cover; border-radius: 8px; border: 1px solid #e4e4e7; }
-
-  .btn {
-    width: 100%; padding: 15px; font-size: 16px; font-weight: 700; margin-top: 18px;
-    border: none; border-radius: 12px; background: #18181b; color: #fff; cursor: pointer;
-  }
+  .btn { width: 100%; padding: 15px; font-size: 16px; font-weight: 700; margin-top: 18px;
+    border: none; border-radius: 12px; background: #18181b; color: #fff; cursor: pointer; }
   .btn:disabled { opacity: .45; cursor: default; }
   .btn:active:not(:disabled) { opacity: .85; }
+  .btn.ghost { background: #fff; color: #18181b; border: 1px solid #d4d4d8; }
 
   .status { text-align: center; font-size: 14px; margin-top: 12px; min-height: 18px; }
-  .status.err { color: #dc2626; }
-  .status.work { color: #2563eb; }
+  .status.err { color: #dc2626; } .status.work { color: #2563eb; }
 
-  .card {
-    margin-top: 22px; padding: 18px; background: #fff;
-    border: 1px solid #e4e4e7; border-radius: 12px; border-left: 4px solid #16a34a;
-  }
+  .card { margin-top: 22px; padding: 18px; background: #fff; border: 1px solid #e4e4e7;
+    border-radius: 12px; border-left: 4px solid #16a34a; }
   .card .lbl { font-size: 12px; color: #71717a; text-transform: uppercase; letter-spacing: .04em; margin-bottom: 8px; }
   .url { font-size: 14px; color: #2563eb; font-weight: 500; word-break: break-all; margin-bottom: 12px; }
   .copied { text-align: center; color: #16a34a; font-size: 13px; height: 16px; margin-top: 8px; }
+  .info { background: #f0f9ff; border: 1px solid #bae6fd; border-radius: 10px; padding: 12px 14px; font-size: 14px; margin-top: 8px; }
   .hidden { display: none; }
-  .btn.ghost { background: #fff; color: #18181b; border: 1px solid #d4d4d8; margin-top: 10px; }
 </style>
 </head>
 <body>
-  <h1>อัปรูป + สร้างลิงก์ NFC</h1>
-  <p class="sub">เลือกรูป → กดอัปโหลด → ได้ลิงก์เขียน NFC เลย รูปตั้งชื่อสุ่มอัตโนมัติ คนอื่นเดาไม่ได้</p>
+  <h1>จัดการกรอบรูป NFC</h1>
+  <p class="sub">สร้างกรอบใหม่ หรือแก้ไขกรอบเดิม (แก้แล้วลิงก์ไม่เปลี่ยน แท็ก NFC เดิมใช้ได้เลย)</p>
 
   <details id="settings">
     <summary id="sumText">ตั้งค่า GitHub (ครั้งแรกครั้งเดียว)</summary>
@@ -76,46 +67,95 @@
     <label>Repo</label>
     <input type="text" id="repo" placeholder="nfc">
     <label>Token</label>
-    <input type="password" id="token" placeholder="ghp_... หรือ github_pat_...">
-    <small>สร้าง Token ที่ <a href="https://github.com/settings/tokens?type=beta" target="_blank">github.com/settings/tokens</a> → Fine-grained → เลือกเฉพาะ repo <b>nfc</b> → สิทธิ์ <b>Contents: Read and write</b> → คัดลอกมาวาง (เครื่องจำให้ ไม่ส่งไปไหน)</small>
+    <input type="password" id="token" placeholder="github_pat_...">
+    <small>สร้างที่ <a href="https://github.com/settings/tokens?type=beta" target="_blank">github.com/settings/tokens</a> → Fine-grained → repo <b>nfc</b> → <b>Contents: Read and write</b></small>
     <button class="btn ghost" onclick="saveSettings()">บันทึกการตั้งค่า</button>
   </details>
 
-  <div class="drop" id="drop" onclick="document.getElementById('file').click()">
-    <div class="big">📷 แตะเพื่อเลือกรูป</div>
-    <div class="sm">เลือกได้หลายรูปในกรอบเดียว</div>
+  <div class="tabs">
+    <div class="tab active" id="tabNew" onclick="switchTab('new')">➕ สร้างกรอบใหม่</div>
+    <div class="tab" id="tabEdit" onclick="switchTab('edit')">✏️ แก้ไขกรอบเดิม</div>
   </div>
-  <input type="file" id="file" accept="image/*" multiple>
-  <div class="thumbs" id="thumbs"></div>
 
-  <label>ชื่อ/ข้อความใต้รูป (ไม่ใส่ก็ได้)</label>
-  <input type="text" id="name" placeholder="คุณจอห์น">
+  <!-- ===== สร้างใหม่ ===== -->
+  <div id="panelNew">
+    <div class="drop" onclick="pick('nImg')">
+      <div class="big">📷 เลือกรูป</div>
+      <div class="sm">เลือกได้หลายรูปในกรอบเดียว</div>
+    </div>
+    <input type="file" id="nImg" accept="image/*" multiple>
+    <div class="thumbs" id="nThumbs"></div>
 
-  <button class="btn" id="uploadBtn" onclick="doUpload()" disabled>อัปโหลด &amp; สร้างลิงก์</button>
-  <div class="status" id="status"></div>
+    <div class="drop" style="margin-top:12px" onclick="pick('nSong')">
+      <div class="big">🎵 เลือกเพลง (ไม่ใส่ก็ได้)</div>
+      <div class="sm">ไฟล์ .mp3 แนะนำไม่เกิน ~8 MB</div>
+    </div>
+    <input type="file" id="nSong" accept="audio/*">
+    <div class="picked" id="nSongName"></div>
 
-  <div class="card hidden" id="result">
-    <div class="lbl">✅ เสร็จ! ลิงก์นี้ไปเขียนลงแท็ก NFC</div>
-    <div class="url" id="url"></div>
-    <button class="btn" style="margin-top:0" onclick="copyUrl()">คัดลอกลิงก์</button>
-    <div class="copied" id="copied"></div>
-    <a id="preview" href="#" target="_blank"><button class="btn ghost">เปิดดูตัวอย่าง</button></a>
+    <label>ชื่อ/ข้อความใต้รูป (ไม่ใส่ก็ได้)</label>
+    <input type="text" id="nName" placeholder="คุณจอห์น">
+
+    <button class="btn" id="nBtn" onclick="createFrame()" disabled>สร้างกรอบ &amp; ได้ลิงก์</button>
+    <div class="status" id="nStatus"></div>
+
+    <div class="card hidden" id="nResult">
+      <div class="lbl">✅ สร้างเสร็จ! ลิงก์นี้ไปเขียนลง NFC</div>
+      <div class="url" id="nUrl"></div>
+      <button class="btn" style="margin-top:0" onclick="copyUrl('nUrl','nCopied')">คัดลอกลิงก์</button>
+      <div class="copied" id="nCopied"></div>
+      <a id="nPreview" href="#" target="_blank"><button class="btn ghost">เปิดดูตัวอย่าง</button></a>
+    </div>
+  </div>
+
+  <!-- ===== แก้ไข ===== -->
+  <div id="panelEdit" class="hidden">
+    <label>วางลิงก์กรอบเดิม (หรือใส่รหัสกรอบ)</label>
+    <input type="text" id="eLink" placeholder="https://...github.io/nfc/?f=abc123  หรือ  abc123">
+    <button class="btn ghost" onclick="loadFrame()">โหลดกรอบนี้</button>
+    <div class="status" id="eLoadStatus"></div>
+
+    <div id="eForm" class="hidden">
+      <div class="info" id="eCurrent"></div>
+
+      <div class="drop" style="margin-top:14px" onclick="pick('eImg')">
+        <div class="big">📷 เปลี่ยนรูป (ไม่เลือก = ใช้รูปเดิม)</div>
+        <div class="sm">เลือกรูปใหม่เพื่อแทนที่ทั้งหมด</div>
+      </div>
+      <input type="file" id="eImg" accept="image/*" multiple>
+      <div class="thumbs" id="eThumbs"></div>
+
+      <div class="drop" style="margin-top:12px" onclick="pick('eSong')">
+        <div class="big">🎵 เปลี่ยน/เพิ่มเพลง (ไม่เลือก = คงเดิม)</div>
+        <div class="sm">ไฟล์ .mp3</div>
+      </div>
+      <input type="file" id="eSong" accept="audio/*">
+      <div class="picked" id="eSongName"></div>
+
+      <label>ชื่อ/ข้อความใต้รูป</label>
+      <input type="text" id="eName" placeholder="(ว่างได้)">
+
+      <button class="btn" id="eBtn" onclick="saveFrame()">บันทึกการแก้ไข</button>
+      <div class="status" id="eStatus"></div>
+
+      <div class="card hidden" id="eResult">
+        <div class="lbl">✅ บันทึกแล้ว! ลิงก์เดิม (ไม่ต้องเขียน NFC ใหม่)</div>
+        <div class="url" id="eUrl"></div>
+        <button class="btn" style="margin-top:0" onclick="copyUrl('eUrl','eCopied')">คัดลอกลิงก์</button>
+        <div class="copied" id="eCopied"></div>
+        <a id="ePreview" href="#" target="_blank"><button class="btn ghost">เปิดดูตัวอย่าง</button></a>
+      </div>
+    </div>
   </div>
 
 <script>
   var owner = document.getElementById('owner');
   var repo = document.getElementById('repo');
   var token = document.getElementById('token');
-  var fileInput = document.getElementById('file');
-  var thumbs = document.getElementById('thumbs');
-  var uploadBtn = document.getElementById('uploadBtn');
-  var statusEl = document.getElementById('status');
-  var selected = [];
 
-  // โหลดค่าที่เคยบันทึก
   try {
-    owner.value = localStorage.getItem('gh_owner') || '';
-    repo.value = localStorage.getItem('gh_repo') || '';
+    owner.value = localStorage.getItem('gh_owner') || 'TheBossSOG';
+    repo.value = localStorage.getItem('gh_repo') || 'nfc';
     token.value = localStorage.getItem('gh_token') || '';
   } catch (e) {}
   refreshSettingsUI();
@@ -126,9 +166,8 @@
       ? 'ตั้งค่า GitHub <span class="ok">✓ พร้อมใช้</span> (แตะเพื่อแก้)'
       : 'ตั้งค่า GitHub (ครั้งแรกครั้งเดียว)';
     if (!ok) document.getElementById('settings').open = true;
-    checkReady();
+    checkNewReady();
   }
-
   function saveSettings() {
     try {
       localStorage.setItem('gh_owner', owner.value.trim());
@@ -138,101 +177,198 @@
     document.getElementById('settings').open = false;
     refreshSettingsUI();
   }
-
-  // เลือกรูป + พรีวิว
-  fileInput.addEventListener('change', function () {
-    selected = Array.from(fileInput.files);
-    thumbs.innerHTML = '';
-    selected.forEach(function (f) {
-      var img = document.createElement('img');
-      img.src = URL.createObjectURL(f);
-      thumbs.appendChild(img);
+  // บันทึกอัตโนมัติทุกครั้งที่พิมพ์ (ไม่ต้องกดปุ่มบันทึกก็จำให้)
+  [owner, repo, token].forEach(function (el) {
+    el.addEventListener('input', function () {
+      try {
+        localStorage.setItem('gh_owner', owner.value.trim());
+        localStorage.setItem('gh_repo', repo.value.trim());
+        localStorage.setItem('gh_token', token.value.trim());
+      } catch (e) {}
+      checkNewReady();
     });
-    checkReady();
   });
 
-  function checkReady() {
-    var ok = owner.value && repo.value && token.value && selected.length > 0;
-    uploadBtn.disabled = !ok;
+  function switchTab(which) {
+    document.getElementById('tabNew').classList.toggle('active', which === 'new');
+    document.getElementById('tabEdit').classList.toggle('active', which === 'edit');
+    document.getElementById('panelNew').classList.toggle('hidden', which !== 'new');
+    document.getElementById('panelEdit').classList.toggle('hidden', which !== 'edit');
   }
+  function pick(id) { document.getElementById(id).click(); }
 
+  // ===== helpers =====
+  function baseUrl() { return 'https://' + owner.value.trim().toLowerCase() + '.github.io/' + repo.value.trim() + '/'; }
+  function apiUrl(path) { return 'https://api.github.com/repos/' + owner.value.trim() + '/' + repo.value.trim() + '/contents/' + path; }
+  function authHeaders() { return { 'Authorization': 'token ' + token.value.trim(), 'Accept': 'application/vnd.github+json' }; }
+  function errMsg(s) { return s === 401 ? 'Token ไม่ถูกต้อง' : s === 403 ? 'Token สิทธิ์ไม่พอ (ต้อง Contents: Read and write)' : s === 404 ? 'ไม่พบ repo หรือไฟล์' : ('ผิดพลาด (' + s + ')'); }
   function randomCode() {
-    var chars = 'abcdefghijklmnopqrstuvwxyz0123456789';
-    var arr = new Uint32Array(10), out = '';
+    var chars = 'abcdefghijklmnopqrstuvwxyz0123456789', arr = new Uint32Array(8), out = '';
     crypto.getRandomValues(arr);
-    for (var i = 0; i < 10; i++) out += chars[arr[i] % chars.length];
+    for (var i = 0; i < 8; i++) out += chars[arr[i] % chars.length];
     return out;
   }
-  function extOf(fname) {
-    var m = fname.toLowerCase().match(/\.(jpg|jpeg|png|gif|webp)$/);
-    return m ? m[0] : '.jpg';
-  }
-  function toBase64(file) {
-    return new Promise(function (resolve, reject) {
+  function extImg(n) { var m = n.toLowerCase().match(/\.(jpe?g|png|gif|webp)$/); return m ? m[0] : '.jpg'; }
+  function extAudio(n) { var m = n.toLowerCase().match(/\.(mp3|m4a|aac|ogg|wav)$/); return m ? m[0] : '.mp3'; }
+  function toB64(file) {
+    return new Promise(function (res, rej) {
       var r = new FileReader();
-      r.onload = function () { resolve(r.result.split(',')[1]); };
-      r.onerror = reject;
-      r.readAsDataURL(file);
+      r.onload = function () { res(r.result.split(',')[1]); };
+      r.onerror = rej; r.readAsDataURL(file);
     });
   }
+  function utf8ToB64(s) { return btoa(unescape(encodeURIComponent(s))); }
+  function b64ToUtf8(b) { return decodeURIComponent(escape(atob(b.replace(/\s/g, '')))); }
 
-  async function doUpload() {
-    var o = owner.value.trim(), rp = repo.value.trim(), tk = token.value.trim();
-    if (!o || !rp || !tk) { setStatus('กรุณาตั้งค่า GitHub ก่อน', 'err'); return; }
-    uploadBtn.disabled = true;
+  async function putFile(path, b64, msg) {
+    var sha;
+    var g = await fetch(apiUrl(path), { headers: authHeaders() });
+    if (g.status === 200) { var j = await g.json(); sha = j.sha; }
+    var body = { message: msg, content: b64 };
+    if (sha) body.sha = sha;
+    var res = await fetch(apiUrl(path), { method: 'PUT', headers: authHeaders(), body: JSON.stringify(body) });
+    if (!res.ok) throw new Error(errMsg(res.status));
+  }
+  async function getManifest(code) {
+    var g = await fetch(apiUrl('data/' + code + '.json'), { headers: authHeaders() });
+    if (g.status === 404) throw new Error('ไม่พบกรอบรหัสนี้');
+    if (!g.ok) throw new Error(errMsg(g.status));
+    var j = await g.json();
+    return JSON.parse(b64ToUtf8(j.content));
+  }
+  function setStatus(id, t, cls) { var el = document.getElementById(id); el.textContent = t; el.className = 'status' + (cls ? ' ' + cls : ''); }
+  function copyUrl(urlId, copiedId) {
+    navigator.clipboard.writeText(document.getElementById(urlId).textContent).then(function () {
+      document.getElementById(copiedId).textContent = 'คัดลอกแล้ว ✓';
+      setTimeout(function () { document.getElementById(copiedId).textContent = ''; }, 1800);
+    });
+  }
+  function settingsOk() { return owner.value.trim() && repo.value.trim() && token.value.trim(); }
+
+  // ===== สร้างใหม่ =====
+  var nImgs = [], nSongFile = null;
+  document.getElementById('nImg').addEventListener('change', function (e) {
+    nImgs = Array.from(e.target.files);
+    var box = document.getElementById('nThumbs'); box.innerHTML = '';
+    nImgs.forEach(function (f) { var i = document.createElement('img'); i.src = URL.createObjectURL(f); box.appendChild(i); });
+    checkNewReady();
+  });
+  document.getElementById('nSong').addEventListener('change', function (e) {
+    nSongFile = e.target.files[0] || null;
+    document.getElementById('nSongName').textContent = nSongFile ? ('🎵 ' + nSongFile.name) : '';
+  });
+  function checkNewReady() { document.getElementById('nBtn').disabled = !(settingsOk() && nImgs.length > 0); }
+
+  async function createFrame() {
+    if (!settingsOk()) { setStatus('nStatus', 'ตั้งค่า GitHub ก่อน', 'err'); return; }
+    document.getElementById('nBtn').disabled = true;
     var code = randomCode();
-    var names = [];
     try {
-      for (var i = 0; i < selected.length; i++) {
-        setStatus('กำลังอัปโหลดรูป ' + (i + 1) + '/' + selected.length + '…', 'work');
-        var f = selected[i];
-        var fname = (selected.length === 1) ? (code + extOf(f.name)) : (code + '-' + (i + 1) + extOf(f.name));
-        var b64 = await toBase64(f);
-        var res = await fetch('https://api.github.com/repos/' + o + '/' + rp + '/contents/img/' + fname, {
-          method: 'PUT',
-          headers: { 'Authorization': 'token ' + tk, 'Accept': 'application/vnd.github+json' },
-          body: JSON.stringify({ message: 'add ' + fname, content: b64 })
-        });
-        if (!res.ok) {
-          var msg = res.status === 401 ? 'Token ไม่ถูกต้อง' : res.status === 404 ? 'ไม่พบ repo หรือ Token ไม่มีสิทธิ์' : ('อัปโหลดไม่สำเร็จ (' + res.status + ')');
-          throw new Error(msg);
-        }
-        names.push(fname);
+      var imageNames = [];
+      for (var i = 0; i < nImgs.length; i++) {
+        setStatus('nStatus', 'อัปรูป ' + (i + 1) + '/' + nImgs.length + '…', 'work');
+        var fn = code + '-' + (i + 1) + extImg(nImgs[i].name);
+        await putFile('img/' + fn, await toB64(nImgs[i]), 'add ' + fn);
+        imageNames.push(fn);
       }
+      var songName = '';
+      if (nSongFile) {
+        setStatus('nStatus', 'อัปเพลง…', 'work');
+        songName = code + extAudio(nSongFile.name);
+        await putFile('music/' + songName, await toB64(nSongFile), 'add ' + songName);
+      }
+      setStatus('nStatus', 'บันทึกข้อมูลกรอบ…', 'work');
+      var manifest = { name: document.getElementById('nName').value.trim(), images: imageNames, song: songName };
+      await putFile('data/' + code + '.json', utf8ToB64(JSON.stringify(manifest)), 'frame ' + code);
 
-      // สร้างลิงก์
-      var baseUrl = 'https://' + o.toLowerCase() + '.github.io/' + rp + '/';
-      var q = '?img=' + encodeURIComponent(names.join(','));
-      var nm = document.getElementById('name').value.trim();
-      if (nm) q += '&name=' + encodeURIComponent(nm);
-      var full = baseUrl + q;
-
-      document.getElementById('url').textContent = full;
-      document.getElementById('preview').href = full;
-      document.getElementById('result').classList.remove('hidden');
-      setStatus('', '');
-      // เคลียร์รูปที่เลือกเพื่อทำกรอบถัดไป
-      selected = []; thumbs.innerHTML = ''; fileInput.value = '';
-      document.getElementById('result').scrollIntoView({ behavior: 'smooth' });
-    } catch (err) {
-      setStatus('❌ ' + err.message, 'err');
-    }
-    checkReady();
+      var url = baseUrl() + '?f=' + code;
+      document.getElementById('nUrl').textContent = url;
+      document.getElementById('nPreview').href = url;
+      document.getElementById('nResult').classList.remove('hidden');
+      setStatus('nStatus', '');
+      nImgs = []; nSongFile = null;
+      document.getElementById('nThumbs').innerHTML = '';
+      document.getElementById('nSongName').textContent = '';
+      document.getElementById('nImg').value = ''; document.getElementById('nSong').value = '';
+      document.getElementById('nResult').scrollIntoView({ behavior: 'smooth' });
+    } catch (err) { setStatus('nStatus', '❌ ' + err.message, 'err'); }
+    checkNewReady();
   }
 
-  function setStatus(t, cls) {
-    statusEl.textContent = t;
-    statusEl.className = 'status' + (cls ? ' ' + cls : '');
+  // ===== แก้ไข =====
+  var curCode = null, curManifest = null, eImgs = [], eSongFile = null;
+  function codeFromInput(v) {
+    v = v.trim();
+    var m = v.match(/[?&]f=([a-z0-9]+)/i);
+    if (m) return m[1];
+    return v; // ถือว่าเป็นรหัสตรง ๆ
   }
-
-  function copyUrl() {
-    navigator.clipboard.writeText(document.getElementById('url').textContent).then(function () {
-      document.getElementById('copied').textContent = 'คัดลอกแล้ว ✓';
-      setTimeout(function () { document.getElementById('copied').textContent = ''; }, 1800);
-    });
+  async function loadFrame() {
+    if (!settingsOk()) { setStatus('eLoadStatus', 'ตั้งค่า GitHub ก่อน', 'err'); return; }
+    var code = codeFromInput(document.getElementById('eLink').value);
+    if (!code) { setStatus('eLoadStatus', 'ใส่ลิงก์หรือรหัสก่อน', 'err'); return; }
+    setStatus('eLoadStatus', 'กำลังโหลด…', 'work');
+    try {
+      var m = await getManifest(code);
+      curCode = code; curManifest = m; eImgs = []; eSongFile = null;
+      document.getElementById('eThumbs').innerHTML = '';
+      document.getElementById('eSongName').textContent = '';
+      document.getElementById('eImg').value = ''; document.getElementById('eSong').value = '';
+      document.getElementById('eName').value = m.name || '';
+      document.getElementById('eCurrent').innerHTML =
+        'กรอบ <b>' + code + '</b> · รูป ' + (m.images ? m.images.length : 0) + ' รูป · เพลง: ' + (m.song ? 'มี' : 'ไม่มี');
+      document.getElementById('eForm').classList.remove('hidden');
+      document.getElementById('eResult').classList.add('hidden');
+      setStatus('eLoadStatus', '');
+    } catch (err) { setStatus('eLoadStatus', '❌ ' + err.message, 'err'); }
   }
+  document.getElementById('eImg').addEventListener('change', function (e) {
+    eImgs = Array.from(e.target.files);
+    var box = document.getElementById('eThumbs'); box.innerHTML = '';
+    eImgs.forEach(function (f) { var i = document.createElement('img'); i.src = URL.createObjectURL(f); box.appendChild(i); });
+  });
+  document.getElementById('eSong').addEventListener('change', function (e) {
+    eSongFile = e.target.files[0] || null;
+    document.getElementById('eSongName').textContent = eSongFile ? ('🎵 ' + eSongFile.name) : '';
+  });
 
-  [owner, repo, token].forEach(function (el) { el.addEventListener('input', checkReady); });
+  async function saveFrame() {
+    if (!curCode) return;
+    document.getElementById('eBtn').disabled = true;
+    var m = curManifest;
+    try {
+      // เปลี่ยนรูป (ถ้าเลือกใหม่ = แทนที่ทั้งชุด)
+      if (eImgs.length > 0) {
+        var newNames = [];
+        for (var i = 0; i < eImgs.length; i++) {
+          setStatus('eStatus', 'อัปรูป ' + (i + 1) + '/' + eImgs.length + '…', 'work');
+          var fn = curCode + '-' + (i + 1) + extImg(eImgs[i].name);
+          await putFile('img/' + fn, await toB64(eImgs[i]), 'update ' + fn);
+          newNames.push(fn);
+        }
+        m.images = newNames;
+      }
+      // เปลี่ยน/เพิ่มเพลง
+      if (eSongFile) {
+        setStatus('eStatus', 'อัปเพลง…', 'work');
+        var songName = curCode + extAudio(eSongFile.name);
+        await putFile('music/' + songName, await toB64(eSongFile), 'update song ' + songName);
+        m.song = songName;
+      }
+      m.name = document.getElementById('eName').value.trim();
+      setStatus('eStatus', 'บันทึก…', 'work');
+      await putFile('data/' + curCode + '.json', utf8ToB64(JSON.stringify(m)), 'edit ' + curCode);
+
+      var url = baseUrl() + '?f=' + curCode;
+      document.getElementById('eUrl').textContent = url;
+      document.getElementById('ePreview').href = url + '&t=' + Date.now();
+      document.getElementById('eResult').classList.remove('hidden');
+      curManifest = m;
+      setStatus('eStatus', '');
+      document.getElementById('eResult').scrollIntoView({ behavior: 'smooth' });
+    } catch (err) { setStatus('eStatus', '❌ ' + err.message, 'err'); }
+    document.getElementById('eBtn').disabled = false;
+  }
 </script>
 </body>
 </html>
