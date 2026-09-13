@@ -106,8 +106,11 @@
     <input type="file" id="nSong" accept="audio/*">
     <div class="picked" id="nSongName"></div>
 
-    <label>ชื่อ/ข้อความใต้รูป (ไม่ใส่ก็ได้)</label>
-    <input type="text" id="nName" placeholder="คุณจอห์น">
+    <label>ชื่อกรอบ / ชื่อลูกค้า <span style="color:#71717a;font-weight:400">(ไว้ค้นหาในรายการ — ไม่โชว์บนรูป)</span></label>
+    <input type="text" id="nLabel" placeholder="เช่น Job &amp; Anuch (งานแต่ง)">
+
+    <label>ข้อความใต้รูป <span style="color:#71717a;font-weight:400">(โชว์บนรูปจริง — ไม่ใส่ก็ได้)</span></label>
+    <input type="text" id="nName" placeholder="เช่น Love you ❤️">
 
     <button class="btn" id="nBtn" onclick="createFrame()" disabled>สร้างกรอบ &amp; ได้ลิงก์</button>
     <div class="status" id="nStatus"></div>
@@ -145,7 +148,10 @@
       <input type="file" id="eSong" accept="audio/*">
       <div class="picked" id="eSongName"></div>
 
-      <label>ชื่อ/ข้อความใต้รูป</label>
+      <label>ชื่อกรอบ / ชื่อลูกค้า <span style="color:#71717a;font-weight:400">(ไว้ค้นหา — ไม่โชว์บนรูป)</span></label>
+      <input type="text" id="eLabel" placeholder="(ว่างได้)">
+
+      <label>ข้อความใต้รูป <span style="color:#71717a;font-weight:400">(โชว์บนรูปจริง)</span></label>
       <input type="text" id="eName" placeholder="(ว่างได้)">
 
       <button class="btn" id="eBtn" onclick="saveFrame()">บันทึกการแก้ไข</button>
@@ -301,7 +307,7 @@
         await putFile('music/' + songName, await toB64(nSongFile), 'add ' + songName);
       }
       setStatus('nStatus', 'บันทึกข้อมูลกรอบ…', 'work');
-      var manifest = { name: document.getElementById('nName').value.trim(), images: imageNames, song: songName, updated: Date.now() };
+      var manifest = { label: document.getElementById('nLabel').value.trim(), name: document.getElementById('nName').value.trim(), images: imageNames, song: songName, updated: Date.now() };
       await putFile('data/' + code + '.json', utf8ToB64(JSON.stringify(manifest)), 'frame ' + code);
 
       var url = baseUrl() + '?f=' + code;
@@ -313,6 +319,7 @@
       document.getElementById('nThumbs').innerHTML = '';
       document.getElementById('nSongName').textContent = '';
       document.getElementById('nImg').value = ''; document.getElementById('nSong').value = '';
+      document.getElementById('nLabel').value = ''; document.getElementById('nName').value = '';
       document.getElementById('nResult').scrollIntoView({ behavior: 'smooth' });
     } catch (err) { setStatus('nStatus', '❌ ' + err.message, 'err'); }
     checkNewReady();
@@ -337,6 +344,7 @@
       document.getElementById('eThumbs').innerHTML = '';
       document.getElementById('eSongName').textContent = '';
       document.getElementById('eImg').value = ''; document.getElementById('eSong').value = '';
+      document.getElementById('eLabel').value = m.label || '';
       document.getElementById('eName').value = m.name || '';
       document.getElementById('eCurrent').innerHTML =
         'กรอบ <b>' + code + '</b> · รูป ' + (m.images ? m.images.length : 0) + ' รูป · เพลง: ' + (m.song ? 'มี' : 'ไม่มี');
@@ -378,6 +386,7 @@
         await putFile('music/' + songName, await toB64(eSongFile), 'update song ' + songName);
         m.song = songName;
       }
+      m.label = document.getElementById('eLabel').value.trim();
       m.name = document.getElementById('eName').value.trim();
       m.updated = Date.now();
       setStatus('eStatus', 'บันทึก…', 'work');
@@ -414,8 +423,9 @@
         try {
           var r = await fetch(files[i].download_url + '?t=' + Date.now());
           var m = await r.json();
-          frames.push({ code: code, name: m.name || '(ไม่มีชื่อ)', updated: m.updated || 0, imgs: (m.images || []).length, song: !!m.song });
-        } catch (e) { frames.push({ code: code, name: '(อ่านไม่ได้)', updated: 0, imgs: 0, song: false }); }
+          var title = (m.label && m.label.trim()) || (m.name && m.name.trim()) || '(ไม่มีชื่อ)';
+          frames.push({ code: code, title: title, caption: m.name || '', updated: m.updated || 0, imgs: (m.images || []).length, song: !!m.song });
+        } catch (e) { frames.push({ code: code, title: '(อ่านไม่ได้)', caption: '', updated: 0, imgs: 0, song: false }); }
       }
       frames.sort(function (a, b) { return b.updated - a.updated; });
 
@@ -432,7 +442,7 @@
             '<a class="fbtn" href="' + url + '" target="_blank" style="text-align:center;text-decoration:none;line-height:20px">👁 เปิดดู</a>' +
             '<button class="fbtn">✏️ แก้ไข</button>' +
           '</div><div class="fcopied"></div>';
-        card.querySelector('.fname').textContent = fr.name;
+        card.querySelector('.fname').textContent = fr.title;
         var btns = card.querySelectorAll('button');
         btns[0].onclick = function () {
           navigator.clipboard.writeText(url).then(function () {
