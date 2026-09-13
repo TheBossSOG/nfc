@@ -6,77 +6,99 @@
 <title>Photo</title>
 <style>
   * { margin: 0; padding: 0; box-sizing: border-box; }
-  html, body {
-    height: 100%; background: #0a0a0a; overflow: hidden;
+  html, body { height: 100%; }
+  body {
+    height: 100dvh;                 /* ปรับขนาดพอดีจอเองอัตโนมัติ (รวมแถบเบราว์เซอร์บนมือถือ) */
+    display: flex; flex-direction: column;
+    background: #0a0a0a; overflow: hidden;
     font-family: -apple-system, "Segoe UI", "Noto Sans Thai", sans-serif;
     -webkit-tap-highlight-color: transparent;
   }
+
+  /* พื้นที่รูป = พื้นที่ที่เหลือทั้งหมด รูปย่อ/ขยายพอดีเอง ไม่ล้น */
+  #imgArea { flex: 1 1 auto; min-height: 0; position: relative; overflow: hidden; }
   .track { display: flex; height: 100%; transition: transform 0.3s ease; touch-action: pan-y; }
   .slide { min-width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; }
   .slide img { max-width: 100%; max-height: 100%; object-fit: contain; user-select: none; -webkit-user-drag: none; }
-  .dots { position: fixed; left: 0; right: 0; bottom: calc(18px + env(safe-area-inset-bottom));
-          display: flex; gap: 8px; justify-content: center; pointer-events: none; }
-  .dot { width: 8px; height: 8px; border-radius: 50%; background: rgba(255,255,255,0.35); transition: background 0.2s; }
-  .dot.on { background: #fff; }
-  .caption { position: fixed; left: 0; right: 0; top: calc(14px + env(safe-area-inset-top));
-             text-align: center; color: #fff; font-size: 16px; font-weight: 600;
-             text-shadow: 0 1px 6px rgba(0,0,0,0.6); pointer-events: none; padding: 0 16px; }
-  .msg { position: fixed; inset: 0; display: flex; align-items: center; justify-content: center;
-         color: #777; font-size: 15px; text-align: center; padding: 24px; line-height: 1.6; }
 
-  /* ปุ่มเพลง */
+  #dots { position: absolute; left: 0; right: 0; bottom: 10px; display: flex; gap: 8px; justify-content: center; pointer-events: none; }
+  .dot { width: 8px; height: 8px; border-radius: 50%; background: rgba(255,255,255,0.4); transition: background 0.2s; }
+  .dot.on { background: #fff; }
+
   #musicBtn {
-    position: fixed; right: 16px; bottom: calc(16px + env(safe-area-inset-bottom));
-    width: 52px; height: 52px; border-radius: 50%; border: none;
+    position: absolute; right: 14px; bottom: 14px;
+    width: 50px; height: 50px; border-radius: 50%; border: none;
     background: rgba(255,255,255,0.15); backdrop-filter: blur(8px);
     color: #fff; font-size: 22px; cursor: pointer; z-index: 20;
     display: none; align-items: center; justify-content: center;
   }
   #musicBtn.show { display: flex; }
-  #musicBtn.hint { animation: pulse 1.3s ease-in-out infinite; background: rgba(37,99,235,0.6); }
+  #musicBtn.hint { animation: pulse 1.3s ease-in-out infinite; background: rgba(37,99,235,0.7); }
   @keyframes pulse { 0%,100% { transform: scale(1); } 50% { transform: scale(1.15); } }
+
+  /* แถบข้อความ = แยกใต้รูป ไม่ทับรูป */
+  #captionBar {
+    flex: 0 0 auto;
+    padding: 16px 18px calc(16px + env(safe-area-inset-bottom));
+    text-align: center; color: #fff; font-size: 17px; font-weight: 600; line-height: 1.45;
+    background: #0a0a0a; border-top: 1px solid rgba(255,255,255,0.06);
+  }
+  #captionBar.empty { display: none; }
+
+  .msg { flex: 1; display: flex; align-items: center; justify-content: center; color: #777; font-size: 15px; text-align: center; padding: 24px; line-height: 1.6; }
+
+  #musicHint {
+    position: absolute; right: 76px; bottom: 24px; z-index: 20;
+    background: rgba(37,99,235,0.92); color: #fff; font-size: 13px; font-weight: 600;
+    padding: 8px 12px; border-radius: 20px; white-space: nowrap; display: none;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.3);
+  }
+  #musicHint.show { display: block; animation: fadeUp .3s ease; }
+  @keyframes fadeUp { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
 </style>
 </head>
 <body>
-  <div class="caption" id="caption"></div>
-  <div class="track" id="track"></div>
-  <div class="dots" id="dots"></div>
+  <div id="imgArea">
+    <div class="track" id="track"></div>
+    <div id="dots"></div>
+    <button id="musicBtn" title="เพลง">🔊</button>
+    <div id="musicHint">🔊 แตะหน้าจอเพื่อเปิดเพลง</div>
+  </div>
+  <div id="captionBar" class="empty"></div>
   <div class="msg" id="msg" style="display:none"></div>
-  <button id="musicBtn" title="เพลง">🔊</button>
 
 <script>
   var params = new URLSearchParams(location.search);
   var track = document.getElementById('track');
   var dotsBox = document.getElementById('dots');
   var msg = document.getElementById('msg');
-  var caption = document.getElementById('caption');
+  var captionBar = document.getElementById('captionBar');
+  var imgArea = document.getElementById('imgArea');
 
   var code = params.get('f');
   if (code) {
-    // โหมดใหม่: อ่านข้อมูลกรอบจากไฟล์ manifest (แก้ไขได้โดยลิงก์ไม่เปลี่ยน)
     fetch('data/' + code + '.json?t=' + Date.now())
       .then(function (r) { if (!r.ok) throw 0; return r.json(); })
       .then(render)
       .catch(function () { showMsg('ไม่พบกรอบนี้'); });
   } else {
-    // รองรับลิงก์แบบเก่า ?img=...&song=...
     var imgs = (params.get('img') || '').split(',').map(function (s) { return s.trim(); }).filter(Boolean);
     render({ name: params.get('name') || '', images: imgs, song: params.get('song') || '' });
   }
 
-  function showMsg(t) { msg.style.display = 'flex'; msg.innerHTML = t; }
+  function showMsg(t) { imgArea.style.display = 'none'; msg.style.display = 'flex'; msg.innerHTML = t; }
 
   function render(m) {
     var images = m.images || [];
     if (images.length === 0) { showMsg('ยังไม่มีรูปในกรอบนี้'); return; }
-    if (m.name) caption.textContent = m.name;
+
+    if (m.name) { captionBar.textContent = m.name; captionBar.classList.remove('empty'); }
 
     images.forEach(function (f) {
       var slide = document.createElement('div');
       slide.className = 'slide';
       var im = document.createElement('img');
-      im.src = 'img/' + f;
-      im.alt = f;
+      im.src = 'img/' + f; im.alt = f;
       im.onerror = function () { slide.innerHTML = '<div style="color:#777;font-size:14px;padding:24px;text-align:center">ไม่พบรูป<br>' + f + '</div>'; };
       slide.appendChild(im);
       track.appendChild(slide);
@@ -84,9 +106,7 @@
 
     if (images.length > 1) {
       images.forEach(function (_, i) {
-        var d = document.createElement('div');
-        d.className = 'dot' + (i === 0 ? ' on' : '');
-        dotsBox.appendChild(d);
+        var d = document.createElement('div'); d.className = 'dot' + (i === 0 ? ' on' : ''); dotsBox.appendChild(d);
       });
     }
 
@@ -120,40 +140,20 @@
     var audio = document.createElement('audio');
     audio.src = src; audio.loop = true; audio.setAttribute('playsinline', '');
     document.body.appendChild(audio);
-
     var btn = document.getElementById('musicBtn');
     btn.classList.add('show');
     var playing = false;
-
     function setIcon() { btn.textContent = playing ? '🔊' : '🔇'; }
-
     function play() {
-      audio.play().then(function () {
-        playing = true; btn.classList.remove('hint'); setIcon();
-      }).catch(function () {
-        // เบราว์เซอร์บล็อก autoplay → โชว์ปุ่มกระพริบชวนกด
-        playing = false; btn.classList.add('hint'); setIcon();
-      });
+      audio.play().then(function () { playing = true; btn.classList.remove('hint'); setIcon(); })
+        .catch(function () { playing = false; btn.classList.add('hint'); setIcon(); });
     }
     function pause() { audio.pause(); playing = false; setIcon(); }
-
-    // ลองเล่นทันที
     play();
-
-    // แตะที่ไหนก็ได้ครั้งแรก → เริ่มเพลง
-    function firstTap() {
-      if (!playing) play();
-      document.removeEventListener('touchstart', firstTap);
-      document.removeEventListener('click', firstTap);
-    }
+    function firstTap() { if (!playing) play(); document.removeEventListener('touchstart', firstTap); document.removeEventListener('click', firstTap); }
     document.addEventListener('touchstart', firstTap);
     document.addEventListener('click', firstTap);
-
-    // ปุ่มเพลง = เปิด/ปิด
-    btn.addEventListener('click', function (e) {
-      e.stopPropagation();
-      if (playing) pause(); else play();
-    });
+    btn.addEventListener('click', function (e) { e.stopPropagation(); if (playing) pause(); else play(); });
   }
 </script>
 </body>
