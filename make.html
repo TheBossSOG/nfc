@@ -57,6 +57,14 @@
   .url { font-size: 14px; color: #2563eb; font-weight: 500; word-break: break-all; margin-bottom: 12px; }
   .copied { text-align: center; color: #16a34a; font-size: 13px; height: 16px; margin-top: 8px; }
   .info { background: #f0f9ff; border: 1px solid #bae6fd; border-radius: 10px; padding: 12px 14px; font-size: 14px; margin-top: 8px; }
+  .fcard { background: #fff; border: 1px solid #e4e4e7; border-radius: 12px; padding: 14px; margin-top: 12px; }
+  .fcard .fname { font-size: 16px; font-weight: 700; }
+  .fcard .fmeta { font-size: 12.5px; color: #71717a; margin: 3px 0 10px; word-break: break-all; }
+  .fcard .frow { display: flex; gap: 8px; flex-wrap: wrap; }
+  .fcard .frow button, .fcard .frow a { flex: 1; min-width: 90px; }
+  .fbtn { width: 100%; padding: 10px; font-size: 14px; font-weight: 600; border-radius: 9px; border: 1px solid #d4d4d8; background: #fff; color: #18181b; cursor: pointer; }
+  .fbtn.primary { background: #18181b; color: #fff; border-color: #18181b; }
+  .fcopied { text-align: center; color: #16a34a; font-size: 12px; height: 14px; margin-top: 6px; }
   .hidden { display: none; }
 </style>
 </head>
@@ -77,8 +85,9 @@
   </details>
 
   <div class="tabs">
-    <div class="tab active" id="tabNew" onclick="switchTab('new')">➕ สร้างกรอบใหม่</div>
-    <div class="tab" id="tabEdit" onclick="switchTab('edit')">✏️ แก้ไขกรอบเดิม</div>
+    <div class="tab active" id="tabNew" onclick="switchTab('new')">➕ สร้าง</div>
+    <div class="tab" id="tabEdit" onclick="switchTab('edit')">✏️ แก้ไข</div>
+    <div class="tab" id="tabList" onclick="switchTab('list')">📋 รายการ</div>
   </div>
 
   <!-- ===== สร้างใหม่ ===== -->
@@ -152,6 +161,13 @@
     </div>
   </div>
 
+  <!-- ===== รายการทั้งหมด ===== -->
+  <div id="panelList" class="hidden">
+    <button class="btn ghost" onclick="loadList()">🔄 โหลดรายการกรอบทั้งหมด</button>
+    <div class="status" id="lStatus"></div>
+    <div id="listBox"></div>
+  </div>
+
 <script>
   var owner = document.getElementById('owner');
   var repo = document.getElementById('repo');
@@ -196,8 +212,11 @@
   function switchTab(which) {
     document.getElementById('tabNew').classList.toggle('active', which === 'new');
     document.getElementById('tabEdit').classList.toggle('active', which === 'edit');
+    document.getElementById('tabList').classList.toggle('active', which === 'list');
     document.getElementById('panelNew').classList.toggle('hidden', which !== 'new');
     document.getElementById('panelEdit').classList.toggle('hidden', which !== 'edit');
+    document.getElementById('panelList').classList.toggle('hidden', which !== 'list');
+    if (which === 'list' && !listLoaded) loadList();
   }
   function pick(id) { document.getElementById(id).click(); }
 
@@ -373,6 +392,67 @@
       document.getElementById('eResult').scrollIntoView({ behavior: 'smooth' });
     } catch (err) { setStatus('eStatus', '❌ ' + err.message, 'err'); }
     document.getElementById('eBtn').disabled = false;
+  }
+
+  // ===== รายการทั้งหมด =====
+  var listLoaded = false;
+  async function loadList() {
+    if (!settingsOk()) { setStatus('lStatus', 'ตั้งค่า GitHub ก่อน', 'err'); return; }
+    setStatus('lStatus', 'กำลังโหลดรายการ…', 'work');
+    var box = document.getElementById('listBox'); box.innerHTML = '';
+    try {
+      var g = await fetch(apiUrl('data'), { headers: authHeaders() });
+      if (g.status === 404) { setStatus('lStatus', 'ยังไม่มีกรอบที่สร้างไว้'); listLoaded = true; return; }
+      if (!g.ok) throw new Error(errMsg(g.status));
+      var files = (await g.json()).filter(function (f) { return /\.json$/.test(f.name); });
+      if (files.length === 0) { setStatus('lStatus', 'ยังไม่มีกรอบที่สร้างไว้'); listLoaded = true; return; }
+
+      // อ่านข้อมูลแต่ละกรอบ
+      var frames = [];
+      for (var i = 0; i < files.length; i++) {
+        var code = files[i].name.replace(/\.json$/, '');
+        try {
+          var r = await fetch(files[i].download_url + '?t=' + Date.now());
+          var m = await r.json();
+          frames.push({ code: code, name: m.name || '(ไม่มีชื่อ)', updated: m.updated || 0, imgs: (m.images || []).length, song: !!m.song });
+        } catch (e) { frames.push({ code: code, name: '(อ่านไม่ได้)', updated: 0, imgs: 0, song: false }); }
+      }
+      frames.sort(function (a, b) { return b.updated - a.updated; });
+
+      frames.forEach(function (fr) {
+        var url = baseUrl() + '?f=' + fr.code;
+        var when = fr.updated ? new Date(fr.updated).toLocaleString('th-TH') : '-';
+        var card = document.createElement('div');
+        card.className = 'fcard';
+        card.innerHTML =
+          '<div class="fname"></div>' +
+          '<div class="fmeta">รหัส ' + fr.code + ' · ' + fr.imgs + ' รูป · ' + (fr.song ? 'มีเพลง' : 'ไม่มีเพลง') + ' · ' + when + '<br>' + url + '</div>' +
+          '<div class="frow">' +
+            '<button class="fbtn primary">📋 คัดลอกลิงก์</button>' +
+            '<a class="fbtn" href="' + url + '" target="_blank" style="text-align:center;text-decoration:none;line-height:20px">👁 เปิดดู</a>' +
+            '<button class="fbtn">✏️ แก้ไข</button>' +
+          '</div><div class="fcopied"></div>';
+        card.querySelector('.fname').textContent = fr.name;
+        var btns = card.querySelectorAll('button');
+        btns[0].onclick = function () {
+          navigator.clipboard.writeText(url).then(function () {
+            var c = card.querySelector('.fcopied'); c.textContent = 'คัดลอกแล้ว ✓';
+            setTimeout(function () { c.textContent = ''; }, 1800);
+          });
+        };
+        btns[1].onclick = function () { editFromList(url); };
+        box.appendChild(card);
+      });
+      setStatus('lStatus', 'ทั้งหมด ' + frames.length + ' กรอบ');
+      listLoaded = true;
+    } catch (err) { setStatus('lStatus', '❌ ' + err.message, 'err'); }
+  }
+
+  function editFromList(url) {
+    switchTab('edit');
+    document.getElementById('eLink').value = url;
+    loadFrame();
+    window.scrollTo({ top: 0, behavior: 'smooth' });
   }
 </script>
 </body>
