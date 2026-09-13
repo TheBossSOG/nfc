@@ -261,7 +261,7 @@
     nSongFile = e.target.files[0] || null;
     document.getElementById('nSongName').textContent = nSongFile ? ('🎵 ' + nSongFile.name) : '';
   });
-  function checkNewReady() { document.getElementById('nBtn').disabled = !(settingsOk() && nImgs.length > 0); }
+  function checkNewReady() { document.getElementById('nBtn').disabled = !(settingsOk() && nImgs && nImgs.length > 0); }
 
   async function createFrame() {
     if (!settingsOk()) { setStatus('nStatus', 'ตั้งค่า GitHub ก่อน', 'err'); return; }
