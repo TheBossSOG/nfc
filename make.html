@@ -3,6 +3,9 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+<meta http-equiv="Pragma" content="no-cache">
+<meta http-equiv="Expires" content="0">
 <title>จัดการกรอบรูป NFC</title>
 <style>
   * { box-sizing: border-box; }
@@ -279,7 +282,7 @@
         await putFile('music/' + songName, await toB64(nSongFile), 'add ' + songName);
       }
       setStatus('nStatus', 'บันทึกข้อมูลกรอบ…', 'work');
-      var manifest = { name: document.getElementById('nName').value.trim(), images: imageNames, song: songName };
+      var manifest = { name: document.getElementById('nName').value.trim(), images: imageNames, song: songName, updated: Date.now() };
       await putFile('data/' + code + '.json', utf8ToB64(JSON.stringify(manifest)), 'frame ' + code);
 
       var url = baseUrl() + '?f=' + code;
@@ -357,6 +360,7 @@
         m.song = songName;
       }
       m.name = document.getElementById('eName').value.trim();
+      m.updated = Date.now();
       setStatus('eStatus', 'บันทึก…', 'work');
       await putFile('data/' + curCode + '.json', utf8ToB64(JSON.stringify(m)), 'edit ' + curCode);
 

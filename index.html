@@ -47,14 +47,19 @@
 
   .msg { flex: 1; display: flex; align-items: center; justify-content: center; color: #777; font-size: 15px; text-align: center; padding: 24px; line-height: 1.6; }
 
-  #musicHint {
-    position: absolute; right: 76px; bottom: 24px; z-index: 20;
-    background: rgba(37,99,235,0.92); color: #fff; font-size: 13px; font-weight: 600;
-    padding: 8px 12px; border-radius: 20px; white-space: nowrap; display: none;
-    box-shadow: 0 2px 10px rgba(0,0,0,0.3);
+  /* หน้าปก "แตะเพื่อเปิด" (โผล่เฉพาะกรอบที่มีเพลง และเบราว์เซอร์บล็อก autoplay) */
+  #intro {
+    position: fixed; inset: 0; z-index: 50;
+    background: radial-gradient(circle at 50% 38%, #1c1c1c, #000);
+    display: none; flex-direction: column; align-items: center; justify-content: center;
+    color: #fff; text-align: center; cursor: pointer; gap: 16px; padding: 24px;
   }
-  #musicHint.show { display: block; animation: fadeUp .3s ease; }
-  @keyframes fadeUp { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+  #intro.show { display: flex; }
+  #intro.hide { opacity: 0; pointer-events: none; transition: opacity .5s ease; }
+  #intro .ic { font-size: 60px; animation: bob 1.6s ease-in-out infinite; }
+  #intro .t1 { font-size: 22px; font-weight: 700; }
+  #intro .t2 { font-size: 14px; color: #aaa; }
+  @keyframes bob { 0%,100% { transform: translateY(0); } 50% { transform: translateY(-10px); } }
 </style>
 </head>
 <body>
@@ -62,10 +67,14 @@
     <div class="track" id="track"></div>
     <div id="dots"></div>
     <button id="musicBtn" title="เพลง">🔊</button>
-    <div id="musicHint">🔊 แตะหน้าจอเพื่อเปิดเพลง</div>
   </div>
   <div id="captionBar" class="empty"></div>
   <div class="msg" id="msg" style="display:none"></div>
+  <div id="intro">
+    <div class="ic">💌</div>
+    <div class="t1" id="introTitle">แตะเพื่อเปิด</div>
+    <div class="t2">มีเพลงประกอบ · แตะหน้าจอเพื่อเริ่ม</div>
+  </div>
 
 <script>
   var params = new URLSearchParams(location.search);
@@ -98,7 +107,7 @@
       var slide = document.createElement('div');
       slide.className = 'slide';
       var im = document.createElement('img');
-      im.src = 'img/' + f; im.alt = f;
+      im.src = 'img/' + f + '?v=' + (m.updated || 0); im.alt = f;
       im.onerror = function () { slide.innerHTML = '<div style="color:#777;font-size:14px;padding:24px;text-align:center">ไม่พบรูป<br>' + f + '</div>'; };
       slide.appendChild(im);
       track.appendChild(slide);
@@ -111,7 +120,10 @@
     }
 
     setupSwipe(images.length);
-    if (m.song) setupMusic('music/' + m.song);
+    if (m.song) {
+      if (m.name) document.getElementById('introTitle').textContent = m.name;
+      setupMusic('music/' + m.song + '?v=' + (m.updated || 0));
+    }
   }
 
   function setupSwipe(n) {
@@ -141,18 +153,31 @@
     audio.src = src; audio.loop = true; audio.setAttribute('playsinline', '');
     document.body.appendChild(audio);
     var btn = document.getElementById('musicBtn');
+    var intro = document.getElementById('intro');
     btn.classList.add('show');
     var playing = false;
     function setIcon() { btn.textContent = playing ? '🔊' : '🔇'; }
+    function reveal() { intro.classList.add('hide'); setTimeout(function () { intro.classList.remove('show'); }, 500); }
+
     function play() {
-      audio.play().then(function () { playing = true; btn.classList.remove('hint'); setIcon(); })
-        .catch(function () { playing = false; btn.classList.add('hint'); setIcon(); });
+      return audio.play().then(function () { playing = true; setIcon(); }).catch(function () { playing = false; setIcon(); return Promise.reject(); });
     }
     function pause() { audio.pause(); playing = false; setIcon(); }
-    play();
-    function firstTap() { if (!playing) play(); document.removeEventListener('touchstart', firstTap); document.removeEventListener('click', firstTap); }
-    document.addEventListener('touchstart', firstTap);
-    document.addEventListener('click', firstTap);
+
+    // 1) ลองเล่นทันที (บางเบราว์เซอร์บนคอมเล่นเองได้ → ไม่ต้องโชว์หน้าปก)
+    play().then(function () {
+      reveal();
+    }).catch(function () {
+      // 2) เบราว์เซอร์บล็อก → โชว์หน้าปก "แตะเพื่อเปิด" แตะทีเดียวเพลงเล่นพร้อมเสียง
+      intro.classList.add('show');
+      intro.addEventListener('click', function once() {
+        intro.removeEventListener('click', once);
+        play().catch(function () {});  // เป็นการแตะจากผู้ใช้ → เสียงเล่นได้
+        reveal();
+      });
+    });
+
+    // ปุ่มลำโพง = ปิด/เปิดเสียงได้ตลอด
     btn.addEventListener('click', function (e) { e.stopPropagation(); if (playing) pause(); else play(); });
   }
 </script>
